@@ -3,6 +3,8 @@
 
 # Environment
 .env
+.env.local
+.env.*.local
 .venv/
 venv/
 
@@ -13,6 +15,21 @@ __pycache__/
 *.pyd
 .pytest_cache/
 .mypy_cache/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Coverage / linters
+.coverage
+htmlcov/
+.ruff_cache/
+
+# Logs
+*.log
+
+# IDE (선택: 팀에서 VS Code 설정을 공유하면 이 줄은 지우세요)
+.vscode/
 
 # OS
 .DS_Store
