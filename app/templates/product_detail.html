@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block content %}
+<p><a href="/products">← 상품 목록</a></p>
+
+{% if saved %}
+<div class="alert alert--ok">저장되었습니다.</div>
+{% endif %}
+{% if error %}
+<div class="alert alert--err">{{ error }}</div>
+{% endif %}
+
+<div class="card card--accent">
+  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.75rem;justify-content:space-between;">
+    <div>
+      <h2 style="margin:0;font-size:1.2rem;">{{ product.name }}</h2>
+      {% if product.description %}
+      <p class="empty-hint" style="margin:0.35rem 0 0;">{{ product.description }}</p>
+      {% endif %}
+    </div>
+    <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+      <span>{% if product.is_active %}<span class="badge">활성</span>{% else %}<span class="badge badge--muted">비활성</span>{% endif %}</span>
+      {% if product.is_active %}
+      <form method="post" action="/products/{{ product.id }}/status" style="margin:0;">
+        <input type="hidden" name="is_active" value="0">
+        <input type="hidden" name="next" value="/products/{{ product.id }}">
+        <button type="submit" class="btn btn--secondary btn--small">비활성으로</button>
+      </form>
+      {% else %}
+      <form method="post" action="/products/{{ product.id }}/status" style="margin:0;">
+        <input type="hidden" name="is_active" value="1">
+        <input type="hidden" name="next" value="/products/{{ product.id }}">
+        <button type="submit" class="btn btn--primary btn--small">활성으로</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  <p class="empty-hint" style="margin:0.75rem 0 0;font-size:0.9rem;">비활성 상품은 대시보드·재고 화면에 나오지 않습니다.</p>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h2 style="margin-top:0;font-size:1.2rem;">등급 추가</h2>
+    <form method="post" action="/products/{{ product.id }}/grades">
+      <div class="form-row">
+        <label for="grade_code">등급 코드</label>
+        <input id="grade_code" name="grade_code" required maxlength="20" placeholder="예: A, B, LAST">
+      </div>
+      <div class="form-row">
+        <label for="grade_name">등급 이름</label>
+        <input id="grade_name" name="grade_name" required maxlength="100" placeholder="예: A상">
+      </div>
+      <div class="form-row">
+        <label for="sort_order">정렬 순서</label>
+        <input id="sort_order" name="sort_order" type="number" value="0">
+        <p class="empty-hint" style="margin:0.25rem 0 0;font-size:0.88rem;">
+          목록·대시보드에서 등급을 보여 줄 때 순서입니다. 숫자가 작을수록 앞에 옵니다 (예: A=0, B=1, 라스트=99).
+        </p>
+      </div>
+      <div class="form-row">
+        <label for="initial_stock">초기 재고</label>
+        <input id="initial_stock" name="initial_stock" type="number" min="0" value="0">
+      </div>
+      <button type="submit" class="btn btn--primary">추가</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0;font-size:1.2rem;">등급 목록</h2>
+    {% if grades %}
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>코드</th>
+            <th>이름</th>
+            <th>재고</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for g in grades %}
+          <tr>
+            <td><span class="badge">{{ g.grade_code }}</span></td>
+            <td>{{ g.grade_name }}</td>
+            <td><strong>{{ g.current_stock }}</strong></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="empty-hint">등급이 없습니다. 왼쪽에서 추가하세요.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

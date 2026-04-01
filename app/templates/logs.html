@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card card--accent">
+  {% if logs %}
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>시각</th>
+          <th>상품</th>
+          <th>등급</th>
+          <th>작업자</th>
+          <th>구분</th>
+          <th>변화</th>
+          <th>전→후</th>
+          <th>사유</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td style="white-space:nowrap;font-size:0.9rem;">{{ log.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+          <td>{{ log.product.name if log.product else log.product_id }}</td>
+          <td>{{ log.grade.grade_name if log.grade else log.grade_id }}</td>
+          <td>{{ log.user.username if log.user else log.user_id }}</td>
+          <td><span class="badge">{{ log.change_type }}</span></td>
+          <td>{{ log.quantity_delta }}</td>
+          <td>{{ log.before_qty }} → {{ log.after_qty }}</td>
+          <td>{{ log.reason or "—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty-hint">이력이 없습니다.</p>
+  {% endif %}
+</div>
+{% endblock %}

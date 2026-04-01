@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not users %}
+<div class="alert alert--err">
+  아직 사용자가 없습니다. <a href="/users">사용자</a>에서 관리자 계정을 먼저 만든 뒤 재고 조정 시 선택하세요.
+</div>
+{% endif %}
+
+<div class="dash-summary">
+  <div class="dash-stat">
+    <span class="dash-stat__label">활성 상품</span>
+    <span class="dash-stat__value">{{ total_products }}</span>
+  </div>
+  <div class="dash-stat">
+    <span class="dash-stat__label">등급 줄 수</span>
+    <span class="dash-stat__value">{{ total_grades }}</span>
+  </div>
+  <div class="dash-stat">
+    <span class="dash-stat__label">총 남은 수량</span>
+    <span class="dash-stat__value">{{ total_units }}</span>
+  </div>
+</div>
+
+{% if zero_grades %}
+<div class="alert alert--err">
+  <strong>재고 0</strong>인 등급이 있습니다. 입고를 확인해 주세요.
+  <ul class="dash-zero-list">
+    {% for p, g in zero_grades %}
+    <li><strong>{{ p.name }}</strong> · {{ g.grade_name }} ({{ g.grade_code }})</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if by_product %}
+<div class="dash-products">
+  {% for block in by_product %}
+  {% set p = block.product %}
+  {% set grades = block.grades %}
+  {% set subtotal = grades | sum(attribute='current_stock') %}
+  <article class="dash-product-card">
+    <header class="dash-product-card__head">
+      <h2 class="dash-product-card__title">{{ p.name }}</h2>
+      <span class="dash-product-card__sum">합계 <strong>{{ subtotal }}</strong>개</span>
+    </header>
+    <div class="dash-grade-grid">
+      {% for g in grades %}
+      <div class="dash-grade-chip {% if g.current_stock == 0 %}is-empty{% endif %}">
+        <span class="dash-grade-chip__name">{{ g.grade_name }}</span>
+        <span class="dash-grade-chip__code">{{ g.grade_code }}</span>
+        <span class="dash-grade-chip__qty">{{ g.current_stock }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </article>
+  {% endfor %}
+</div>
+<p class="empty-hint" style="margin-top:1rem;"><a href="/inventory">재고 조정</a>에서 상품별로 수량을 바꿀 수 있습니다.</p>
+{% else %}
+<div class="card card--accent">
+  <p class="empty-hint" style="margin-top:0;">표시할 재고가 없습니다. <strong>상품</strong>에서 활성 상품과 등급을 추가해 주세요.</p>
+</div>
+{% endif %}
+{% endblock %}

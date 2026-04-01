@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+{% if ok %}
+<div class="alert alert--ok">재고가 반영되었습니다.</div>
+{% endif %}
+{% if error %}
+<div class="alert alert--err">{{ error }}</div>
+{% endif %}
+
+<p class="empty-hint" style="margin-top:0;">
+  상품마다 카드로 나뉘어 있어, 판(상품)이 많아져도 <strong>해당 상품 안의 등급만</strong> 보면 됩니다.
+</p>
+
+{% if not users %}
+<div class="alert alert--err">
+  사용자가 없습니다. <a href="/users">사용자</a> 메뉴에서 계정을 만든 뒤 다시 오세요.
+</div>
+{% endif %}
+
+{% if not by_product %}
+<div class="card">
+  <p class="empty-hint">조정할 등급이 없습니다. <strong>활성</strong> 상품에 등급을 추가하세요.</p>
+</div>
+{% else %}
+<div class="card card--accent inv-worker-bar">
+  <div class="form-row" style="margin-bottom:0;">
+    <label for="inv-worker"><strong>작업자</strong> (모든 행에 적용)</label>
+    <select id="inv-worker" {% if not users %}disabled{% endif %} required>
+      <option value="">— 먼저 선택 —</option>
+      {% for u in users %}
+      <option value="{{ u.id }}">{{ u.username }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+
+{% for block in by_product %}
+{% set p = block.product %}
+{% set grades = block.grades %}
+<section class="inv-product-card">
+  <header class="inv-product-card__head">
+    <h2 class="inv-product-card__title">{{ p.name }}</h2>
+    <a class="inv-product-card__link" href="/products/{{ p.id }}">상품 관리 →</a>
+  </header>
+  <div class="table-wrap">
+    <table class="data inv-table">
+      <thead>
+        <tr>
+          <th>등급</th>
+          <th>코드</th>
+          <th>현재</th>
+          <th>조정</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for g in grades %}
+        <tr>
+          <td>{{ g.grade_name }}</td>
+          <td><span class="badge">{{ g.grade_code }}</span></td>
+          <td><strong>{{ g.current_stock }}</strong></td>
+          <td class="inv-table__form-cell">
+            <form
+              class="inv-line-form"
+              method="post"
+              action="/inventory"
+              onsubmit="var w=document.getElementById('inv-worker'); if(!w||!w.value){ alert('작업자를 먼저 선택해 주세요.'); return false; } this.user_id.value=w.value; return true;"
+            >
+              <input type="hidden" name="grade_id" value="{{ g.id }}">
+              <input type="hidden" name="user_id" value="">
+              <div class="inv-inline">
+                <select name="change_type" required aria-label="구분">
+                  <option value="IN">입고</option>
+                  <option value="OUT">출고</option>
+                  <option value="ADJUST">조정(목표)</option>
+                </select>
+                <input name="quantity" type="number" min="0" value="1" required aria-label="수량">
+                <input name="reason" type="text" maxlength="255" placeholder="사유(선택)" aria-label="사유">
+                <button type="submit" class="btn btn--primary btn--small" {% if not users %}disabled{% endif %}>적용</button>
+              </div>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endfor %}
+{% endif %}
+{% endblock %}

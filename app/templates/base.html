@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }} · 잇쇼니쿠지 재고</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Jua&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <div class="brand">
+        <img class="brand__logo" src="/static/logo.png" alt="잇쇼니쿠지 로고" width="200" height="80">
+        <div class="brand__text">
+          <span class="brand__title">잇쇼니쿠지 <span class="sparkle">✦</span></span>
+          <span class="brand__subtitle">쿠지 재고 관리</span>
+        </div>
+      </div>
+      <nav class="nav" aria-label="주 메뉴">
+        <a href="/" class="{{ 'is-active' if nav_active == 'home' else '' }}">대시보드</a>
+        <a href="/products" class="{{ 'is-active' if nav_active == 'products' else '' }}">상품</a>
+        <a href="/inventory" class="{{ 'is-active' if nav_active == 'inventory' else '' }}">재고</a>
+        <a href="/logs" class="{{ 'is-active' if nav_active == 'logs' else '' }}">이력</a>
+        <a href="/users" class="{{ 'is-active' if nav_active == 'users' else '' }}">사용자</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    <h1 class="page-title">{{ title }}</h1>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

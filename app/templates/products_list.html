@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+{% if saved %}
+<div class="alert alert--ok">저장되었습니다.</div>
+{% endif %}
+{% if error %}
+<div class="alert alert--err">{{ error }}</div>
+{% endif %}
+
+<div class="grid-2">
+  <div class="card">
+    <h2 style="margin-top:0;font-size:1.2rem;">새 상품</h2>
+    <form method="post" action="/products">
+      <div class="form-row">
+        <label for="name">상품 이름</label>
+        <input id="name" name="name" required maxlength="100" placeholder="예: 원피스 쿠지">
+      </div>
+      <div class="form-row">
+        <label for="description">설명 (선택)</label>
+        <textarea id="description" name="description" rows="3" placeholder="메모"></textarea>
+      </div>
+      <button type="submit" class="btn btn--primary">등록</button>
+    </form>
+  </div>
+
+  <div class="card card--accent">
+    <h2 style="margin-top:0;font-size:1.2rem;">상품 목록</h2>
+    {% if items %}
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>이름</th>
+            <th>상태</th>
+            <th>전환</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in items %}
+          <tr>
+            <td>{{ p.name }}</td>
+            <td>{% if p.is_active %}<span class="badge">활성</span>{% else %}<span class="badge badge--muted">비활성</span>{% endif %}</td>
+            <td>
+              {% if p.is_active %}
+              <form method="post" action="/products/{{ p.id }}/status" style="display:inline;">
+                <input type="hidden" name="is_active" value="0">
+                <input type="hidden" name="next" value="/products">
+                <button type="submit" class="btn btn--secondary btn--small">비활성으로</button>
+              </form>
+              {% else %}
+              <form method="post" action="/products/{{ p.id }}/status" style="display:inline;">
+                <input type="hidden" name="is_active" value="1">
+                <input type="hidden" name="next" value="/products">
+                <button type="submit" class="btn btn--primary btn--small">활성으로</button>
+              </form>
+              {% endif %}
+            </td>
+            <td><a href="/products/{{ p.id }}">관리 →</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="empty-hint">등록된 상품이 없습니다.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
