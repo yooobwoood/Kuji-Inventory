@@ -3,13 +3,12 @@
 {% if ok %}
 <div class="alert alert--ok">재고가 반영되었습니다.</div>
 {% endif %}
+{% if draw_ok %}
+<div class="alert alert--ok">뽑기 결과가 일괄 반영되었습니다.</div>
+{% endif %}
 {% if error %}
 <div class="alert alert--err">{{ error }}</div>
 {% endif %}
-
-<p class="empty-hint" style="margin-top:0;">
-  상품마다 카드로 나뉘어 있어, 판(상품)이 많아져도 <strong>해당 상품 안의 등급만</strong> 보면 됩니다.
-</p>
 
 {% if not users %}
 <div class="alert alert--err">
@@ -17,30 +16,121 @@
 </div>
 {% endif %}
 
+{% if by_product %}
+<div class="card">
+  <h2 style="margin-top:0;font-size:1.15rem;">고객 뽑기 결과 일괄 반영</h2>
+  <form method="post" action="/inventory/draw">
+    <div class="grid-2">
+      <div class="form-row">
+        <label for="draw_product_id">상품</label>
+        <select id="draw_product_id" name="product_id" required>
+          <option value="">— 선택 —</option>
+          {% for block in by_product %}
+          <option value="{{ block.product.id }}">{{ block.product.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="draw_user_id">작업자</label>
+        <select id="draw_user_id" name="user_id" required {% if not users %}disabled{% endif %}>
+          <option value="">— 선택 —</option>
+          {% for u in users %}
+          <option value="{{ u.id }}">{{ u.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap" style="margin-top:0.5rem;">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>등급 코드</th>
+            <th>수량</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="draw-rows"></tbody>
+      </table>
+    </div>
+    <div class="draw-actions">
+      <button type="button" id="draw-add-row" class="btn btn--secondary btn--small">+ 행 추가</button>
+      <button type="submit" class="btn btn--primary btn--small" {% if not users %}disabled{% endif %}>일괄 반영</button>
+    </div>
+
+    <datalist id="draw-code-list"></datalist>
+    <datalist id="draw-qty-list">
+      {% for n in range(1, 11) %}
+      <option value="{{ n }}">
+      {% endfor %}
+    </datalist>
+
+  </form>
+</div>
+<script>
+(() => {
+  const productToCodes = {
+    {% for block in by_product %}
+    "{{ block.product.id }}": [{% for g in block.grades %}"{{ g.grade_code }}"{% if not loop.last %}, {% endif %}{% endfor %}],
+    {% endfor %}
+  };
+  const productSelect = document.getElementById("draw_product_id");
+  const codeList = document.getElementById("draw-code-list");
+  const rows = document.getElementById("draw-rows");
+  const addBtn = document.getElementById("draw-add-row");
+
+  const refreshCodes = () => {
+    const pid = productSelect.value;
+    const codes = productToCodes[pid] || [];
+    codeList.innerHTML = "";
+    codes.forEach((code) => {
+      const opt = document.createElement("option");
+      opt.value = code;
+      codeList.appendChild(opt);
+    });
+  };
+
+  const createRow = (required = false) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input name="draw_code" list="draw-code-list" placeholder="코드" ${required ? "required" : ""}></td>
+      <td><input name="draw_qty" list="draw-qty-list" inputmode="numeric" placeholder="수량" ${required ? "required" : ""}></td>
+      <td><button type="button" class="btn btn--secondary btn--small">삭제</button></td>
+    `;
+    tr.querySelector("button").addEventListener("click", () => {
+      if (rows.children.length > 1) tr.remove();
+    });
+    rows.appendChild(tr);
+  };
+
+  productSelect.addEventListener("change", refreshCodes);
+  refreshCodes();
+  createRow(true);
+  addBtn.addEventListener("click", () => createRow(false));
+})();
+</script>
+{% endif %}
+
 {% if not by_product %}
 <div class="card">
-  <p class="empty-hint">조정할 등급이 없습니다. <strong>활성</strong> 상품에 등급을 추가하세요.</p>
+  <p class="empty-hint">조정할 등급이 없습니다.</p>
 </div>
 {% else %}
-<div class="card card--accent inv-worker-bar">
-  <div class="form-row" style="margin-bottom:0;">
-    <label for="inv-worker"><strong>작업자</strong> (모든 행에 적용)</label>
-    <select id="inv-worker" {% if not users %}disabled{% endif %} required>
-      <option value="">— 먼저 선택 —</option>
-      {% for u in users %}
-      <option value="{{ u.id }}">{{ u.username }}</option>
-      {% endfor %}
-    </select>
-  </div>
-</div>
-
 {% for block in by_product %}
 {% set p = block.product %}
 {% set grades = block.grades %}
 <section class="inv-product-card">
   <header class="inv-product-card__head">
     <h2 class="inv-product-card__title">{{ p.name }}</h2>
-    <a class="inv-product-card__link" href="/products/{{ p.id }}">상품 관리 →</a>
+    <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+      <select class="inv-card-worker" {% if not users %}disabled{% endif %} required>
+        <option value="">작업자</option>
+        {% for u in users %}
+        <option value="{{ u.id }}">{{ u.username }}</option>
+        {% endfor %}
+      </select>
+      <a class="inv-product-card__link" href="/products/{{ p.id }}">상품 관리 →</a>
+    </div>
   </header>
   <div class="table-wrap">
     <table class="data inv-table">
@@ -63,7 +153,7 @@
               class="inv-line-form"
               method="post"
               action="/inventory"
-              onsubmit="var w=document.getElementById('inv-worker'); if(!w||!w.value){ alert('작업자를 먼저 선택해 주세요.'); return false; } this.user_id.value=w.value; return true;"
+              onsubmit="var w=this.closest('section').querySelector('.inv-card-worker'); if(!w||!w.value){ alert('작업자를 선택해 주세요.'); return false; } this.user_id.value=w.value; return true;"
             >
               <input type="hidden" name="grade_id" value="{{ g.id }}">
               <input type="hidden" name="user_id" value="">
@@ -74,7 +164,7 @@
                   <option value="ADJUST">조정(목표)</option>
                 </select>
                 <input name="quantity" type="number" min="0" value="1" required aria-label="수량">
-                <input name="reason" type="text" maxlength="255" placeholder="사유(선택)" aria-label="사유">
+                <input name="reason" type="text" maxlength="255" placeholder="사유" aria-label="사유">
                 <button type="submit" class="btn btn--primary btn--small" {% if not users %}disabled{% endif %}>적용</button>
               </div>
             </form>

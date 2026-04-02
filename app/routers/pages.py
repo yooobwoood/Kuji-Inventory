@@ -16,7 +16,11 @@ from app.crud import product as product_crud
 from app.crud import user as user_crud
 from app.models.inventory_log import InventoryLog
 from app.schemas.inventory import ChangeType, InventoryAdjust
-from app.services.inventory_service import InventoryAdjustmentError, adjust_inventory
+from app.services.inventory_service import (
+    InventoryAdjustmentError,
+    adjust_inventory,
+    process_draw_results,
+)
 
 router = APIRouter(tags=["pages"])
 templates = Jinja2Templates(directory="app/templates")
@@ -193,7 +197,13 @@ def product_add_grade(
 
 
 @router.get("/inventory", response_class=HTMLResponse)
-def inventory_page(request: Request, db: Session = Depends(get_db), error: str | None = None, ok: str | None = None):
+def inventory_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    error: str | None = None,
+    ok: str | None = None,
+    draw_ok: str | None = None,
+):
     rows = inventory_crud.list_current_stock(db)
     users = user_crud.list_active_users(db)
     by_product = _group_stock_by_product(rows)
@@ -206,6 +216,7 @@ def inventory_page(request: Request, db: Session = Depends(get_db), error: str |
             "users": users,
             "error": error,
             "ok": ok,
+            "draw_ok": draw_ok,
             "nav_active": "inventory",
         },
     )
@@ -241,6 +252,52 @@ def inventory_adjust(
         db.rollback()
         return _redirect("/inventory", error=e.message)
     return _redirect("/inventory", ok="1")
+
+
+@router.post("/inventory/draw")
+def inventory_draw_result(
+    product_id: int = Form(...),
+    draw_code: list[str] = Form([]),
+    draw_qty: list[str] = Form([]),
+    user_id: int = Form(...),
+    db: Session = Depends(get_db),
+):
+    if len(draw_code) != len(draw_qty):
+        return _redirect("/inventory", error="입력 행이 올바르지 않습니다.")
+
+    parsed_codes: list[str] = []
+    total_quantity = 0
+    for code_raw, qty_raw in zip(draw_code, draw_qty):
+        code = (code_raw or "").strip()
+        qty_text = (qty_raw or "").strip()
+        if not code and not qty_text:
+            continue
+        if not code:
+            return _redirect("/inventory", error="등급 코드를 입력해 주세요.")
+        try:
+            qty = int(qty_text)
+        except ValueError:
+            return _redirect("/inventory", error="수량은 숫자로 입력해 주세요.")
+        if qty < 1:
+            return _redirect("/inventory", error="수량은 1 이상이어야 합니다.")
+        parsed_codes.extend([code] * qty)
+        total_quantity += qty
+
+    if total_quantity < 1:
+        return _redirect("/inventory", error="최소 1개 이상의 결과를 입력해 주세요.")
+
+    try:
+        process_draw_results(
+            db,
+            product_id=product_id,
+            user_id=user_id,
+            quantity=total_quantity,
+            result_codes=parsed_codes,
+        )
+    except InventoryAdjustmentError as e:
+        db.rollback()
+        return _redirect("/inventory", error=e.message)
+    return _redirect("/inventory", draw_ok="1")
 
 
 @router.get("/logs", response_class=HTMLResponse)
